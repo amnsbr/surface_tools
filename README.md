@@ -31,6 +31,16 @@ python surface_tools/equivolumetric_surfaces/generate_equivolumetric_surfaces.py
 Then you can use volume_object_evaluate to sample the intensities at the particular depth:   
 volume_object_evaluate volume.mnc equi_left0.5.obj equi_left_intensities0.5.txt
 
+### CIVET usage within Singularity:
+1. Pull the CIVET image:
+```
+singularity pull docker://mcin/civet:2.1.1
+```
+2. Run the script with `--civet_singularity` argument and pass the absolute location of CIVET's singularity image (`civet-2.1.1.simg`). E.g.:
+```
+python surface_tools/equivolumetric_surfaces/generate_equivolumetric_surfaces.py --smoothing 0 gray_left.obj white_left.obj 5 equi_left --civet_sinularity <path-to-civet-2.1.1.simg>
+```  
+
 ### FreeSurfer usage 
 (we assume CIVET as default, so if using freesurfer, specify with the freesurfer flag):     
 ```
