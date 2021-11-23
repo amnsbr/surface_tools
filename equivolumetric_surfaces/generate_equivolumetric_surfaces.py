@@ -5,19 +5,25 @@ import argparse
 import os
 import copy
 
+abspath = os.path.abspath(__file__)
+cwd = os.path.dirname(abspath)
 
-
-def calculate_area(surfname,fwhm, software="CIVET", subject="fsid",surf="pial",hemi="lh"):
+def calculate_area(surfname,fwhm, software="CIVET", subject="fsid",surf="pial",hemi="lh", civet_singularity=None):
     """calculate and smooth surface area using CIVET or freesurfer"""
     tmpdir='/tmp/' + str(np.random.randint(1000))
     os.mkdir(tmpdir)
     if software == "CIVET" :
+        if civet_singularity:
+            civet_singularity_prefix = f"singularity exec {civet_singularity} "
+        else:
+            civet_singularity_prefix = ""
+        print(civet_singularity_prefix)
         try:
-            subprocess.call("depth_potential -area_voronoi " + surfname + " " +os.path.join(tmpdir,"tmp_area.txt"),shell=True)
+            subprocess.call(civet_singularity_prefix + "depth_potential -area_voronoi " + surfname + " " +os.path.join(tmpdir,"tmp_area.txt"),shell=True)
             if fwhm ==0:
                 area=np.loadtxt(os.path.join(tmpdir,"tmp_area.txt"))
             else:
-                subprocess.call("depth_potential -smooth " + str(fwhm) + " " + os.path.join(tmpdir,"tmp_area.txt ") + surfname + " "+os.path.join(tmpdir,"sm_area.txt"),shell=True)
+                subprocess.call(civet_singularity_prefix + "depth_potential -smooth " + str(fwhm) + " " + os.path.join(tmpdir,"tmp_area.txt ") + surfname + " "+os.path.join(tmpdir,"sm_area.txt"),shell=True)
                 area=np.loadtxt(os.path.join(tmpdir,"sm_area.txt"))
             subprocess.call("rm -r "+tmpdir,shell=True)
         except OSError:
@@ -44,8 +50,7 @@ def calculate_area(surfname,fwhm, software="CIVET", subject="fsid",surf="pial",h
         except OSError:
             print("freesurfer tool failure, check mris_fwhm works and SUBJECTS_DIR is set")
             return 0;
-    return area;
-   
+    return area;   
 
 parser = argparse.ArgumentParser(description='generate equivolumetric surfaces between input surfaces')
 parser.add_argument('gray', type=str, help='input gray surface')
@@ -55,6 +60,7 @@ parser.add_argument('output', type=str, help='output surface prefix eg equi_left
 parser.add_argument('--smoothing',type=int, help='fwhm of surface area smoothing. optional, default = 0mm')
 parser.add_argument('--software', type=str, help='surface software package CIVET or freesurfer, default is CIVET')
 parser.add_argument('--subject_id', type=str, help='subject name if freesurfer')
+parser.add_argument('--civet_singularity', type=str, help='path to CIVET singularity image')
 args=parser.parse_args()
 
 
@@ -78,8 +84,8 @@ gm = io.load_mesh_geometry(args.gray)
 n_surfs=args.n_surfs
 
 
-wm_vertexareas = calculate_area(args.white, fwhm,software,surf="white", subject=subject_id)
-pia_vertexareas = calculate_area(args.gray, fwhm,software,surf="pial", subject=subject_id)
+wm_vertexareas = calculate_area(args.white, fwhm,software,surf="white", subject=subject_id, civet_singularity=args.civet_singularity)
+pia_vertexareas = calculate_area(args.gray, fwhm,software,surf="pial", subject=subject_id, civet_singularity=args.civet_singularity)
 
 
 def beta(alpha, aw, ap):
